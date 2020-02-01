@@ -1,0 +1,10 @@
+'commands':
+  'jcr:primaryType': mgnl:content
+  'simplebackup':
+    'jcr:primaryType': mgnl:content
+    'backup':
+      'class': org.sevensource.magnolia.backup.command.BackupCommand
+    'restore':
+      'class': org.sevensource.magnolia.backup.command.RestoreCommand
+    'garbage-collection':
+      'class': org.sevensource.magnolia.backup.command.RepositoryGarbageCollectionCommand
