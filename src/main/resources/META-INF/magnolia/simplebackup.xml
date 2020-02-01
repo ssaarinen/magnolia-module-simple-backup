@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module SYSTEM "module.dtd" >
+<module>
+  <name>simplebackup</name>
+  <displayName>${project.name}</displayName>
+  <description>${project.description}</description>
+
+  <class>org.sevensource.magnolia.backup.SimpleBackupModule</class>
+  <versionHandler>org.sevensource.magnolia.backup.magnolia.MagnoliaSimpleBackupVersionHandler</versionHandler>
+  <version>${project.version}</version>
+
+  <dependencies>
+    <dependency>
+      <name>core</name>
+      <version>6.0.0/*</version>
+    </dependency>
+    
+   <dependency>
+      <name>scheduler</name>
+      <version>2.0/*</version>
+      <optional>true</optional>
+   </dependency>
+   
+   <dependency>
+      <name>rest-services</name>
+      <version>2.0/*</version>
+      <optional>true</optional>
+   </dependency>
+   
+  </dependencies>
+</module>
