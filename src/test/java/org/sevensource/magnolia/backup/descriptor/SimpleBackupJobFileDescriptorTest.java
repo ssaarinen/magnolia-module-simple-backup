@@ -1,8 +1,7 @@
 package org.sevensource.magnolia.backup.descriptor;
 
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,7 +23,7 @@ class SimpleBackupJobFileDescriptorTest {
 		
 		Path relative = basePath.relativize(otherPath);
 		
-		assertThat("should be true", relative.toString().equals("123/test"));
+		assertThat(relative.toString()).isEqualTo("123/test");
 	}
 	
 	
@@ -53,7 +52,8 @@ class SimpleBackupJobFileDescriptorTest {
 		
 		String output2 = new String(os.toByteArray(), StandardCharsets.UTF_8);
 		
-		assertThat("should equal", output, equalTo(output2));
+		
+		assertThat(output).isEqualTo(output2);
 		
 	}
 
