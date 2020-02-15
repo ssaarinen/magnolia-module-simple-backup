@@ -2,6 +2,7 @@ package org.sevensource.magnolia.backup.executor.backup;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -16,12 +17,29 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
+import javax.jcr.LoginException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import info.magnolia.context.Context;
+import info.magnolia.context.MgnlContext;
+import info.magnolia.importexport.contenthandler.XmlContentHandlerFactory;
+import info.magnolia.importexport.filters.NamespaceFilter;
+import info.magnolia.jcr.decoration.ContentDecorator;
+import info.magnolia.objectfactory.Classes;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.commons.xml.Exporter;
+import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.sevensource.magnolia.backup.configuration.SimpleBackupWorkspaceConfiguration;
 import org.sevensource.magnolia.backup.descriptor.SimpleBackupJobFileDescriptor;
 import org.sevensource.magnolia.backup.support.SimpleBackupUtils;
@@ -32,6 +50,8 @@ import info.magnolia.context.SystemContext;
 import info.magnolia.importexport.command.JcrExportCommand;
 import info.magnolia.importexport.command.JcrExportCommand.Compression;
 import info.magnolia.importexport.command.JcrExportCommand.Format;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
 
 public class BackupExecutor {
 
@@ -47,9 +67,6 @@ public class BackupExecutor {
 			.appendPattern("HHmmss")
 			.toFormatter();
 
-	private static final JcrExportCommand.Format format = Format.XML;
-
-
 	private final List<SimpleBackupWorkspaceConfiguration> configurations;
 	private final JcrExportCommand.Compression compression;
 	private final Path exportBasePath;
@@ -62,7 +79,6 @@ public class BackupExecutor {
 		this.exportBasePath = validateAndBuildBackupPath(basePath);
 		this.ctx = ctx;
 	}
-
 
 	public void run() {
 
@@ -79,7 +95,7 @@ public class BackupExecutor {
 			.collect(Collectors.toList());
 
 		final StopWatch totalStopWatch = StopWatch.createStarted();
-		log("Starting Backup");
+		log("Starting Backup into " + exportBasePath.toString());
 
 		for(BackupJobDefinition jobDef : jobDefinitions) {
 			final StopWatch jobStopWatch = StopWatch.createStarted();
@@ -88,9 +104,7 @@ public class BackupExecutor {
 
 			log("Starting backup of workspace " + workspace);
 
-			final Path workspacePath = createWorkspaceBackupDirectory(workspace);
-
-
+			final Path workspaceBackupPath = createWorkspaceBackupDirectory(workspace);
 			final List<String> nodesToBackup = getExportNodes(jobDef);
 
 			for(String backupNode : nodesToBackup) {
@@ -98,12 +112,12 @@ public class BackupExecutor {
 				log("Starting backup of node " + backupNode +" in workspace " + workspace);
 
 				final String backupFilename = createBackupFilename(workspace, backupNode);
-				final Path backupFilepath = workspacePath.resolve(backupFilename);
+				final String backupFilesystemFilename = createBackupFilesystemFilename(backupFilename);
+				final Path backupFilepath = workspaceBackupPath.resolve(backupFilesystemFilename);
 
 				final boolean isBackupJobRootPath = backupNode.equals(jobDef.getRepositoryRootPath());
 
-
-				doBackup(workspace, backupNode, isBackupJobRootPath, backupFilepath);
+				doBackup(workspace, backupNode, isBackupJobRootPath, backupFilename, backupFilepath);
 
 				Path relativeBackupFilepath = exportBasePath.relativize(backupFilepath);
 
@@ -151,40 +165,59 @@ public class BackupExecutor {
 		return nodesToBackup;
 	}
 
-	private void doBackup(String workspace, String nodePath, boolean isBackupJobRootPath, Path destination) {
+	private void doBackup(String workspace, String nodePath, boolean isBackupJobRootPath, String backupFilename, Path destination) {
 
 		if(logger.isDebugEnabled()) {
 			logger.debug("Backing up node {} in workspace {} to {}", nodePath, workspace, destination);
 		}
 
+		try (
+				final OutputStream out = new FileOutputStream(destination.toFile());
+				final OutputStream decoratedOs = decorateOutputStream(out, backupFilename)
+		) {
+			final Session session = ctx.getJCRSession(workspace);
+			final ContentHandler contentHandler = getContentHandler(decoratedOs);
 
-		try ( final OutputStream out = new FileOutputStream(destination.toFile()) ) {
-			final JcrExportCommand exporter = new JcrExportCommand();
-			exporter.setOutputStream(out);
-			exporter.setCompression(this.compression.name());
-			exporter.setFormat(format.name());
-			exporter.setPath(nodePath);
-			exporter.setRepository(workspace);
+			final ContentDecorator contentDecorator = isBackupJobRootPath ?
+					new ExcludeFolderAndSystemNodesFilter() : new JcrExportCommand.DefaultFilter();
 
-			if(isBackupJobRootPath) {
-				exporter.getFilters().put(workspace, new ExcludeFolderAndSystemNodesFilter());
-			} else {
-				exporter.getFilters().put(workspace, new JcrExportCommand.DefaultFilter());
-			}
+			final Node node = contentDecorator.wrapNode( session.getNode(nodePath) );
 
-			exporter.execute(ctx);
-		} catch (FileNotFoundException e) {
-			throw new IllegalArgumentException("Cannot open file for writing: ", e);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+			final SystemViewExporter exporter = new SystemViewExporter(session, contentHandler, true, true);
+			exporter.export(node);
+		} catch (PathNotFoundException ex) {
+			throw new IllegalArgumentException("Path " + nodePath + " was not found for export", ex);
+		} catch (RepositoryException ex) {
+			throw new IllegalStateException("A repository exception occurred", ex);
+		} catch (FileNotFoundException ex) {
+			throw new IllegalArgumentException("Cannot open file '" + destination.toString() + "' for writing during backup. ", ex);
+		} catch (Exception ex) {
+			throw new RuntimeException("An exception occurred during export", ex);
 		} finally {
 			ctx.release();
 		}
 	}
 
+	private ContentHandler getContentHandler(OutputStream out) {
+		final NamespaceFilter filter = new NamespaceFilter("sv", "xsi");
+		filter.setContentHandler(XmlContentHandlerFactory.newXmlContentHandler(out));
+		return filter;
+	}
+
+	private OutputStream decorateOutputStream(OutputStream os, String filename) throws IOException {
+		switch (compression) {
+			case ZIP:
+				final ZipOutputStream zipOutputStream = new ZipOutputStream(os);
+				zipOutputStream.putNextEntry(new ZipEntry(filename));
+				return zipOutputStream;
+			case GZ:
+				return new GZIPOutputStream(os);
+			default:
+				return os;
+		}
+	}
 
 	protected String createBackupFilename(String workspace, String nodePath) {
-
 		final StringBuilder filename = new StringBuilder();
 		filename.append( sanitizeFilename( workspace.toLowerCase() ) );
 
@@ -202,6 +235,11 @@ public class BackupExecutor {
 			filename.append( sanitizeFilename( cleanedNodePath.toLowerCase() ) );
 		}
 
+		filename.append(".xml");
+		return filename.toString();
+	}
+
+	protected String createBackupFilesystemFilename(String filename) {
 		final String compressionExtension;
 		if(this.compression == Compression.NONE) {
 			compressionExtension = "";
@@ -209,11 +247,7 @@ public class BackupExecutor {
 			compressionExtension = "." + this.compression.name().toLowerCase();
 		}
 
-		return String.format("%s.%s%s",
-			filename.toString(),
-			format.name().toLowerCase(),
-			compressionExtension
-		);
+		return filename + compressionExtension;
 	}
 
 	private Path createWorkspaceBackupDirectory(String workspace) {
