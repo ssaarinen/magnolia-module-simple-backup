@@ -20,7 +20,6 @@
 
 
 	<properties>
-		<javaVersion>1.8</javaVersion>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<magnoliaVersion>6.1.4</magnoliaVersion>
 	</properties>
