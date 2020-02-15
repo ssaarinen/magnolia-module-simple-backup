@@ -120,8 +120,9 @@ public class BackupExecutor {
 				doBackup(workspace, backupNode, isBackupJobRootPath, backupFilename, backupFilepath);
 
 				Path relativeBackupFilepath = exportBasePath.relativize(backupFilepath);
+				final String backupDescriptorNodePath = backupNode.replaceFirst("/[^/]+$", "/");
 
-				backupDescriptor.addWorkspaceItem(workspace, backupNode, relativeBackupFilepath);
+				backupDescriptor.addWorkspaceItem(workspace, backupDescriptorNodePath, relativeBackupFilepath);
 				log("Finished backup of node " + backupNode + " in workspace " + jobDef.getWorkspace() + " in " + getTimeAsString(nodeJobStopWatch));
 			}
 
