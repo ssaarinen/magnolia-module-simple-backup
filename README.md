@@ -44,15 +44,16 @@ Available commands:
 
 #### Executing backups from Java/Groovy
 ```groovy
-map  = new java.util.LinkedHashMap<String, String>()
-map.put("configuration", "example") // name of the backup job created above
+map  = new java.util.HashMap<String, String>()
+map.put("configuration", "example")        // name of the backup job created above
+map.put("backup-subdirectory", "nightly")  // optional parameter, if omitted a timestamp will be used
 cm = info.magnolia.commands.CommandsManager.getInstance()
 cm.executeCommand('simplebackup','backup',map)
 ```
 
 #### Executing restores from Java/Groovy
 ```groovy
-map  = new java.util.LinkedHashMap<String, String>()
+map  = new java.util.HashMap<String, String>()
 map.put("path", "/var/magnolia-backups/author/2020-01-25T120000") // path to the directory in which the backup files are stored
 cm = info.magnolia.commands.CommandsManager.getInstance()
 cm.executeCommand('simplebackup','restore',map)
@@ -61,7 +62,7 @@ cm.executeCommand('simplebackup','restore',map)
 #### Executing garbage collections from Java/Groovy
 ```groovy
 cm = info.magnolia.commands.CommandsManager.getInstance()
-cm.executeCommand('simplebackup','garbage-collection', new java.util.LinkedHashMap<String, String>())
+cm.executeCommand('simplebackup','garbage-collection', null)
 ```
 
 #### via Magnolia's scheduler

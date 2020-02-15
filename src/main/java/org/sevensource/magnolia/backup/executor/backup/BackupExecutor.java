@@ -1,5 +1,27 @@
 package org.sevensource.magnolia.backup.executor.backup;
 
+import info.magnolia.context.SystemContext;
+import info.magnolia.importexport.command.JcrExportCommand;
+import info.magnolia.importexport.command.JcrExportCommand.Compression;
+import info.magnolia.importexport.contenthandler.XmlContentHandlerFactory;
+import info.magnolia.importexport.filters.NamespaceFilter;
+import info.magnolia.jcr.decoration.ContentDecorator;
+import info.magnolia.jcr.util.NodeTypes;
+import org.apache.commons.lang3.time.StopWatch;
+import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.commons.xml.SystemViewExporter;
+import org.sevensource.magnolia.backup.configuration.SimpleBackupWorkspaceConfiguration;
+import org.sevensource.magnolia.backup.descriptor.SimpleBackupJobFileDescriptor;
+import org.sevensource.magnolia.backup.executor.backup.filter.ExcludeNodePathsAndSystemNodesFilter;
+import org.sevensource.magnolia.backup.support.SimpleBackupUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.ContentHandler;
+
+import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -13,7 +35,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -21,31 +44,15 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
-import info.magnolia.importexport.contenthandler.XmlContentHandlerFactory;
-import info.magnolia.importexport.filters.NamespaceFilter;
-import info.magnolia.jcr.decoration.ContentDecorator;
-import org.apache.commons.lang3.time.StopWatch;
-import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.commons.xml.SystemViewExporter;
-import org.sevensource.magnolia.backup.configuration.SimpleBackupWorkspaceConfiguration;
-import org.sevensource.magnolia.backup.descriptor.SimpleBackupJobFileDescriptor;
-import org.sevensource.magnolia.backup.support.SimpleBackupUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import info.magnolia.context.SystemContext;
-import info.magnolia.importexport.command.JcrExportCommand;
-import info.magnolia.importexport.command.JcrExportCommand.Compression;
-import org.xml.sax.ContentHandler;
-
 public class BackupExecutor {
-
 	private static final Logger logger = LoggerFactory.getLogger(BackupExecutor.class);
+
+	public static final String VALID_FILENAME_PATTERN = "[\\\\/:*?\"<>|\\s]";
+
+	private static final List<String> SPLITTABLE_NODE_TYPES =
+			Arrays.asList(NodeTypes.Folder.NAME, NodeTypes.Content.NAME, NodeTypes.Page.NAME);
+
+
 
 	private static final DateTimeFormatter dtFormatter = new DateTimeFormatterBuilder()
 			.appendPattern("yyyy")
@@ -66,12 +73,12 @@ public class BackupExecutor {
 	public BackupExecutor(List<SimpleBackupWorkspaceConfiguration> definitions, JcrExportCommand.Compression compression, Path basePath, SystemContext ctx) {
 		this.configurations = definitions;
 		this.compression = compression;
-		this.exportBasePath = buildBackupPath(basePath);
+		this.exportBasePath = basePath;
 		this.ctx = ctx;
 	}
 
 	public void run() {
-		SimpleBackupUtils.createDirectory(exportBasePath);
+		validateBackupPath(exportBasePath);
 
 		final List<BackupJobDefinition> jobDefinitions = configurations
 			.stream()
@@ -98,6 +105,7 @@ public class BackupExecutor {
 			final Path workspaceBackupPath = createWorkspaceBackupDirectory(workspace);
 			final List<String> nodesToBackup = getExportNodes(jobDef);
 
+
 			for(String backupNode : nodesToBackup) {
 				final StopWatch nodeJobStopWatch = StopWatch.createStarted();
 				log("Starting backup of node " + backupNode +" in workspace " + workspace);
@@ -108,7 +116,16 @@ public class BackupExecutor {
 
 				final boolean isBackupJobRootPath = backupNode.equals(jobDef.getRepositoryRootPath());
 
-				doBackup(workspace, backupNode, isBackupJobRootPath, backupFilename, backupFilepath);
+				final List<String> filteredNodes;
+				if(isBackupJobRootPath) {
+					filteredNodes = nodesToBackup.stream()
+							.filter(n -> !n.equals(backupNode))
+							.collect(Collectors.toList());
+				} else {
+					filteredNodes = Collections.emptyList();
+				}
+
+				doBackup(workspace, backupNode, filteredNodes, backupFilename, backupFilepath);
 
 				final Path relativeBackupFilepath = exportBasePath.relativize(backupFilepath);
 				final String backupDescriptorNodePath = backupNode.replaceFirst("/[^/]+$", "/");
@@ -121,14 +138,11 @@ public class BackupExecutor {
 			log("Finished backup of workspace " + jobDef.getWorkspace() + " in " + getTimeAsString(jobStopWatch));
 		}
 
-
 		log("Writing backup jobfile to " + exportBasePath);
 		backupDescriptor.serialize(exportBasePath);
 
 		log("Finished Backup in " + getTimeAsString(totalStopWatch));
 	}
-
-
 
 	private List<String> getExportNodes(BackupJobDefinition job) {
 
@@ -136,17 +150,13 @@ public class BackupExecutor {
 		nodesToBackup.add(job.getRepositoryRootPath());
 
 		try {
-			final Session sess = ctx.getJCRSession(job.getWorkspace());
-			final Node node = sess.getNode(job.getRepositoryRootPath());
+			final Session session = ctx.getJCRSession(job.getWorkspace());
+			final Node node = session.getNode(job.getRepositoryRootPath());
 			final Iterable<Node> childNodes = JcrUtils.getChildNodes(node);
-			final Iterator<Node> it = childNodes.iterator();
-			while(it.hasNext()) {
-				final Node childNode = it.next();
+			for (Node childNode : childNodes) {
 				final String primaryNodeType = childNode.getPrimaryNodeType().getName();
-
-				if(ExcludeFolderAndSystemNodesFilter.SPLITTABLE_NODE_TYPES
-						.contains(primaryNodeType)) {
-					nodesToBackup.add( childNode.getPath() );
+				if (SPLITTABLE_NODE_TYPES.contains(primaryNodeType)) {
+					nodesToBackup.add(childNode.getPath());
 				}
 			}
 		} catch (Exception e) {
@@ -157,7 +167,7 @@ public class BackupExecutor {
 		return nodesToBackup;
 	}
 
-	private void doBackup(String workspace, String nodePath, boolean isBackupJobRootPath, String backupFilename, Path destination) {
+	private void doBackup(String workspace, String nodePath, List<String> filteredNodes, String backupFilename, Path destination) {
 
 		if(logger.isDebugEnabled()) {
 			logger.debug("Backing up node {} in workspace {} to {}", nodePath, workspace, destination);
@@ -170,8 +180,7 @@ public class BackupExecutor {
 			final Session session = ctx.getJCRSession(workspace);
 			final ContentHandler contentHandler = getContentHandler(decoratedOs);
 
-			final ContentDecorator contentDecorator = isBackupJobRootPath ?
-					new ExcludeFolderAndSystemNodesFilter() : new JcrExportCommand.DefaultFilter();
+			final ContentDecorator contentDecorator = new ExcludeNodePathsAndSystemNodesFilter(filteredNodes);
 
 			final Node node = contentDecorator.wrapNode( session.getNode(nodePath) );
 
@@ -247,21 +256,17 @@ public class BackupExecutor {
 		return SimpleBackupUtils.createDirectory(workspacePath);
 	}
 
-	private static Path buildBackupPath(Path basePath) {
+	private static void validateBackupPath(Path basePath) {
 		if(!basePath.toFile().exists() ||
 				!basePath.toFile().isDirectory() ||
 				!Files.isWritable(basePath)) {
-			logger.error("Cannot backup repository into invalid basePath {}", basePath);
-			throw new IllegalArgumentException("Cannot backup repository into nonexistant or non-writable directory");
+			logger.error("Cannot backup repository into invalid basePath '{}'", basePath);
+			throw new IllegalArgumentException("Cannot backup repository into nonexistant or non-writable basePath " + basePath);
 		}
-
-		final String backupSubdirectory = dtFormatter.format(LocalDateTime.now());
-
-		return basePath.resolve(backupSubdirectory);
 	}
 
 	private String sanitizeFilename(String in) {
-		return in.replaceAll("[\\\\/:*?\"<>|\\s]", "").toLowerCase();
+		return in.replaceAll(VALID_FILENAME_PATTERN, "").toLowerCase();
 	}
 
 	private void log(String logMessage) {

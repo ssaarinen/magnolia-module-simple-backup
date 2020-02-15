@@ -104,7 +104,7 @@ public class RestoreExecutor {
         		nodePath,
         		unzippedRestorePath.toString(),
         		false,
-        		false,
+        		true,
         		ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING,
         		false,
         		true);
@@ -132,7 +132,7 @@ public class RestoreExecutor {
 		logger.info("Unzipping {}", filePath);
 
 		try (final FileInputStream fis = new FileInputStream(filePath.toFile());
-				final ZipInputStream zis = new ZipInputStream(fis);) {
+				final ZipInputStream zis = new ZipInputStream(fis)) {
 
 			final ZipEntry entry = zis.getNextEntry();
 

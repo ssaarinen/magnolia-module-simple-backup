@@ -53,6 +53,12 @@ public class SameJcrSessionContextDecorator extends ContextDecorator {
 	@Override
 	public void release() {
 		super.release();
+		for(Entry<String, Session> entry : sessions.entrySet()) {
+			if(entry.getValue().isLive()) {
+				logger.info("Closing session for workspace {}", entry.getKey());
+				entry.getValue().logout();
+			}
+		}
 		this.sessions.clear();
 	}
 }
