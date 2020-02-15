@@ -83,8 +83,9 @@ public class RestoreExecutor {
 		} catch (Exception e) {
 			logger.error("An exception occurred while restoring from backup", e);
 		} finally {
-			contextDecorator.releaseSessions();
+			contextDecorator.release();
 			MgnlContext.setInstance(originalContext);
+			originalContext.release();
 		}
 
 		logger.warn("Finished restoring workspaces in {} seconds", stopWatch.getTime(TimeUnit.SECONDS));

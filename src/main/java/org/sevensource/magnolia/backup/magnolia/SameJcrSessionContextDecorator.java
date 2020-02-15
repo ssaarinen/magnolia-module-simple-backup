@@ -41,7 +41,7 @@ public class SameJcrSessionContextDecorator extends ContextDecorator {
 			logger.debug("Returning cached session for {}", workspaceName);
 			return sessions.get(workspaceName);
 		} else {
-			logger.info("Requested workspace {} does not have a coresponding cached session", workspaceName);
+			logger.info("Requested workspace {} does not have a corresponding cached session", workspaceName);
 			return super.getJCRSession(workspaceName);
 		}
 	}
@@ -53,11 +53,9 @@ public class SameJcrSessionContextDecorator extends ContextDecorator {
 		}
 	}
 
-	public void releaseSessions() {
-		for(Entry<String, Session> entry : sessions.entrySet()) {
-			logger.debug("Releasing JCR session for workspace {}", entry.getKey());
-			entry.getValue().logout();
-		}
+	@Override
+	public void release() {
+		super.release();
+		this.sessions.clear();
 	}
-
 }
