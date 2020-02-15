@@ -1,18 +1,15 @@
 package org.sevensource.magnolia.backup.magnolia;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
+import info.magnolia.context.Context;
+import info.magnolia.context.ContextDecorator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import info.magnolia.context.Context;
-import info.magnolia.context.ContextDecorator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SameJcrSessionContextDecorator extends ContextDecorator {
 
