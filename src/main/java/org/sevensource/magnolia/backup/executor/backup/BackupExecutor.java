@@ -17,28 +17,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.jcr.LoginException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import info.magnolia.context.Context;
-import info.magnolia.context.MgnlContext;
 import info.magnolia.importexport.contenthandler.XmlContentHandlerFactory;
 import info.magnolia.importexport.filters.NamespaceFilter;
 import info.magnolia.jcr.decoration.ContentDecorator;
-import info.magnolia.objectfactory.Classes;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.commons.xml.Exporter;
 import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.sevensource.magnolia.backup.configuration.SimpleBackupWorkspaceConfiguration;
 import org.sevensource.magnolia.backup.descriptor.SimpleBackupJobFileDescriptor;
@@ -49,9 +41,7 @@ import org.slf4j.LoggerFactory;
 import info.magnolia.context.SystemContext;
 import info.magnolia.importexport.command.JcrExportCommand;
 import info.magnolia.importexport.command.JcrExportCommand.Compression;
-import info.magnolia.importexport.command.JcrExportCommand.Format;
 import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
 
 public class BackupExecutor {
 
@@ -76,11 +66,12 @@ public class BackupExecutor {
 	public BackupExecutor(List<SimpleBackupWorkspaceConfiguration> definitions, JcrExportCommand.Compression compression, Path basePath, SystemContext ctx) {
 		this.configurations = definitions;
 		this.compression = compression;
-		this.exportBasePath = validateAndBuildBackupPath(basePath);
+		this.exportBasePath = buildBackupPath(basePath);
 		this.ctx = ctx;
 	}
 
 	public void run() {
+		SimpleBackupUtils.createDirectory(exportBasePath);
 
 		final List<BackupJobDefinition> jobDefinitions = configurations
 			.stream()
@@ -256,7 +247,7 @@ public class BackupExecutor {
 		return SimpleBackupUtils.createDirectory(workspacePath);
 	}
 
-	private static Path validateAndBuildBackupPath(Path basePath) {
+	private static Path buildBackupPath(Path basePath) {
 		if(!basePath.toFile().exists() ||
 				!basePath.toFile().isDirectory() ||
 				!Files.isWritable(basePath)) {
@@ -266,8 +257,7 @@ public class BackupExecutor {
 
 		final String backupSubdirectory = dtFormatter.format(LocalDateTime.now());
 
-		basePath = basePath.resolve(backupSubdirectory);
-		return SimpleBackupUtils.createDirectory(basePath);
+		return basePath.resolve(backupSubdirectory);
 	}
 
 	private String sanitizeFilename(String in) {
