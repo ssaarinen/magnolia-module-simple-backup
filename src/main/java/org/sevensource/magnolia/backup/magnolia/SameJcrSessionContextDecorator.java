@@ -1,6 +1,7 @@
 package org.sevensource.magnolia.backup.magnolia;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,7 +20,7 @@ public class SameJcrSessionContextDecorator extends ContextDecorator {
 
 	private static final Logger logger = LoggerFactory.getLogger(SameJcrSessionContextDecorator.class);
 
-	private final transient Map<String, Session> sessions = new HashMap<>();
+	private final transient Map<String, Session> sessions = new LinkedHashMap<>();
 
 	public SameJcrSessionContextDecorator(Context ctx, List<String> workspaces) {
 		super(ctx);
@@ -44,7 +45,19 @@ public class SameJcrSessionContextDecorator extends ContextDecorator {
 			return super.getJCRSession(workspaceName);
 		}
 	}
-	public Map<String, Session> getCachedSessions() {
-		return sessions;
+
+	public void saveSessions() throws RepositoryException {
+		for(Entry<String, Session> entry : sessions.entrySet()) {
+			logger.debug("Saving JCR session for workspace {}", entry.getKey());
+			entry.getValue().save();
+		}
 	}
+
+	public void releaseSessions() {
+		for(Entry<String, Session> entry : sessions.entrySet()) {
+			logger.debug("Releasing JCR session for workspace {}", entry.getKey());
+			entry.getValue().logout();
+		}
+	}
+
 }

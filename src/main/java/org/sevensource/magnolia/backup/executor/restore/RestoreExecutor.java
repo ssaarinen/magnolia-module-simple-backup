@@ -1,5 +1,17 @@
 package org.sevensource.magnolia.backup.executor.restore;
 
+import info.magnolia.context.Context;
+import info.magnolia.context.MgnlContext;
+import info.magnolia.importexport.DataTransporter;
+import org.apache.commons.lang3.time.StopWatch;
+import org.sevensource.magnolia.backup.descriptor.SimpleBackupJobFileDescriptor;
+import org.sevensource.magnolia.backup.descriptor.WorkspaceDescriptor;
+import org.sevensource.magnolia.backup.descriptor.WorkspaceItemDescriptor;
+import org.sevensource.magnolia.backup.magnolia.SameJcrSessionContextDecorator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.ImportUUIDBehavior;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,28 +21,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import javax.jcr.ImportUUIDBehavior;
-import javax.jcr.Session;
-
-import org.apache.commons.lang3.time.StopWatch;
-import org.sevensource.magnolia.backup.descriptor.SimpleBackupJobFileDescriptor;
-import org.sevensource.magnolia.backup.descriptor.WorkspaceDescriptor;
-import org.sevensource.magnolia.backup.descriptor.WorkspaceItemDescriptor;
-import org.sevensource.magnolia.backup.magnolia.SameJcrSessionContextDecorator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import info.magnolia.context.Context;
-import info.magnolia.context.MgnlContext;
-import info.magnolia.importexport.DataTransporter;
 
 public class RestoreExecutor {
 	private static final Logger logger = LoggerFactory.getLogger(RestoreExecutor.class);
@@ -62,34 +58,33 @@ public class RestoreExecutor {
 		logger.warn("Restoring workspaces from {}", restoreBasePath);
 		final StopWatch stopWatch = StopWatch.createStarted();
 
+		final List<String> workspaceNames = workspaces.stream()
+				.map(WorkspaceDescriptor::getWorkspace)
+				.collect(Collectors.toList());
+
+		final Context originalContext = MgnlContext.getInstance();
+
+		final SameJcrSessionContextDecorator contextDecorator =
+				new SameJcrSessionContextDecorator(originalContext, workspaceNames);
+
 		try {
-			for(WorkspaceDescriptor ws : workspaces) {
+			MgnlContext.setInstance(contextDecorator);
+
+			for (WorkspaceDescriptor ws : workspaces) {
 				logger.info("Restoring workspace '{}'", ws.getWorkspace());
 
-				final Context originalContext = MgnlContext.getInstance();
-
-				final SameJcrSessionContextDecorator contextDecorator =
-						new SameJcrSessionContextDecorator(originalContext, Arrays.asList(ws.getWorkspace()));
-
-				MgnlContext.setInstance(contextDecorator);
-
-				try {
-					for(WorkspaceItemDescriptor wsItem : ws.getWorkspaceItems()) {
-						final Path filePath = restoreBasePath.resolve(wsItem.getFilePath());
-						logger.info("Restoring from file '{}' into {}:{}", filePath, ws.getWorkspace(), wsItem.getNodePath());
-						doRestore(filePath, ws.getWorkspace(), wsItem.getNodePath());
-					}
-
-					for(Entry<String, Session> e : contextDecorator.getCachedSessions().entrySet()) {
-						logger.info("Saving JCR session for workspace {}", e.getKey());
-						e.getValue().save();
-					}
-				} finally {
-					MgnlContext.setInstance(originalContext);
+				for (WorkspaceItemDescriptor wsItem : ws.getWorkspaceItems()) {
+					final Path filePath = restoreBasePath.resolve(wsItem.getFilePath());
+					doRestore(filePath, ws.getWorkspace(), wsItem.getNodePath());
 				}
 			}
-		} catch(Exception e) {
-			logger.error("Exception occured while restoring", e);
+
+			contextDecorator.saveSessions();
+		} catch (Exception e) {
+			logger.error("An exception occurred while restoring from backup", e);
+		} finally {
+			contextDecorator.releaseSessions();
+			MgnlContext.setInstance(originalContext);
 		}
 
 		logger.warn("Finished restoring workspaces in {} seconds", stopWatch.getTime(TimeUnit.SECONDS));
@@ -113,7 +108,6 @@ public class RestoreExecutor {
         		false,
         		true);
 	}
-
 
 	private Path getImportFilePath(Path filePath) {
 		final String filename = filePath.getFileName().toString();
@@ -141,7 +135,7 @@ public class RestoreExecutor {
 
 			final ZipEntry entry = zis.getNextEntry();
 
-			logger.info("Unzipping {} from {}", entry.getName(), filePath);
+			logger.debug("Unzipping first zip entry named '{}'", entry.getName());
 
 			final Path destinationPath = filePath.getParent();
 			final File unzipped = new File(destinationPath.toFile(), entry.getName());
@@ -164,7 +158,6 @@ public class RestoreExecutor {
 			zis.closeEntry();
 
 			return unzipped.toPath();
-
 		} catch (FileNotFoundException e) {
 			throw new IllegalArgumentException("Cannot find file", e);
 		} catch (IOException e) {
