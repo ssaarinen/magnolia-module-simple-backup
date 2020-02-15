@@ -20,13 +20,13 @@ The module is available on [Maven central](https://search.maven.org/artifact/org
 ```yml
     example:
       backupPath: "/var/mgnl-backup"  # base path where backups are stored
-      enabled: true                               # will only be executed if set to true
-      name: example                            # name of the job
-      workspaces:                                # a list of workspaces to backup
+      enabled: true                   # will only be executed if set to true
+      name: example                   # name of the job
+      workspaces:                     # a list of workspaces to backup
         website:
-          workspace: website                 # name of the workspace
-          path: /                                    # root path within the workspace to backup
-          split: true                                # if true, a new file will be written for every subfolder
+          workspace: website          # name of the workspace
+          path: /                     # root path within the workspace to backup
+          split: true                 # if true, a new file will be written for every subfolder
         config:
           workspace: config
           path: /

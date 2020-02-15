@@ -20,10 +20,10 @@ public class SameJcrSessionContextDecorator extends ContextDecorator {
 	private static final Logger logger = LoggerFactory.getLogger(SameJcrSessionContextDecorator.class);
 
 	private final transient Map<String, Session> sessions = new HashMap<>();
-	
+
 	public SameJcrSessionContextDecorator(Context ctx, List<String> workspaces) {
 		super(ctx);
-		
+
 		for(String workspace : workspaces) {
 			try {
 				final Session session = ctx.getJCRSession(workspace);
@@ -33,7 +33,7 @@ public class SameJcrSessionContextDecorator extends ContextDecorator {
 			}
 		}
 	}
-	
+
 	@Override
 	public Session getJCRSession(String workspaceName) throws RepositoryException {
 		if(sessions.containsKey(workspaceName)) {
@@ -44,7 +44,6 @@ public class SameJcrSessionContextDecorator extends ContextDecorator {
 			return super.getJCRSession(workspaceName);
 		}
 	}
-	
 	public Map<String, Session> getCachedSessions() {
 		return sessions;
 	}
