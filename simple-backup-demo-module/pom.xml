@@ -5,12 +5,12 @@
 	<parent>
 		<groupId>org.sevensource.magnolia</groupId>
 		<artifactId>magnolia-module-simple-backup-reactor</artifactId>
-		<version>1.1.0</version>
+		<version>1.1.1</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>simple-backup-demo-module</artifactId>
-	<version>1.1.0</version>
+	<version>1.1.1</version>
 	<packaging>jar</packaging>
 
 	<properties>
@@ -35,7 +35,7 @@
 		<dependency>
 			<groupId>org.sevensource.magnolia</groupId>
 			<artifactId>magnolia-module-simple-backup</artifactId>
-			<version>1.0.2-SNAPSHOT</version>
+			<version>1.1.1</version>
 		</dependency>
 	</dependencies>
 
