@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.sevensource.magnolia</groupId>
+		<artifactId>magnolia-module-simple-backup-reactor</artifactId>
+		<version>1.0.2-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<artifactId>simple-backup-demo-webapp</artifactId>
+	<version>1.0.2-SNAPSHOT</version>
+
+	<packaging>war</packaging>
+
+	<properties>
+		<java.version>1.8</java.version>
+		<maven.compiler.source>${java.version}</maven.compiler.source>
+		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<magnoliaVersion>6.2</magnoliaVersion>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>info.magnolia</groupId>
+			<artifactId>magnolia-empty-webapp</artifactId>
+			<type>war</type>
+			<version>${magnoliaVersion}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>info.magnolia</groupId>
+			<artifactId>magnolia-empty-webapp</artifactId>
+			<type>pom</type>
+			<version>${magnoliaVersion}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sevensource.magnolia</groupId>
+			<artifactId>simple-backup-demo-module</artifactId>
+			<version>1.0.2-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>info.magnolia.rest</groupId>
+			<artifactId>magnolia-rest-services</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>info.magnolia</groupId>
+			<artifactId>magnolia-module-scheduler</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>info.magnolia.groovy</groupId>
+			<artifactId>magnolia-groovy</artifactId>
+		</dependency>
+	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>info.magnolia.bundle</groupId>
+				<artifactId>magnolia-bundle-parent</artifactId>
+				<version>${magnoliaVersion}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+				<configuration>
+					<!-- exclude jars copied "physically" from the webapp overlay - so we
+						only get those resolved by Maven's dependency management -->
+					<dependentWarExcludes>WEB-INF/lib/*.jar</dependentWarExcludes>
+					<failOnMissingWebXml>false</failOnMissingWebXml>
+				</configuration>
+			</plugin>
+		</plugins>
+
+		<!-- default resources configuration which will filter your module descriptors -->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>**/*</include>
+				</includes>
+			</resource>
+			<resource>
+				<filtering>true</filtering>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>META-INF/magnolia/*</include>
+				</includes>
+			</resource>
+		</resources>
+	</build>
+
+	<repositories>
+		<repository>
+			<id>magnolia.public</id>
+			<url>https://nexus.magnolia-cms.com/content/groups/public</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+
+		<repository>
+			<id>vaadin-addons</id>
+			<url>https://maven.vaadin.com/vaadin-addons</url>
+		</repository>
+	</repositories>
+</project>
