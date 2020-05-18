@@ -25,4 +25,17 @@
 		<developerConnection>scm:git:git@github.com:sevensource/magnolia-module-simple-backup.git</developerConnection>
 		<url>http://github.com/sevensource/magnolia-module-simple-backup/tree/master</url>
 	</scm>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>com.amashchenko.maven.plugin</groupId>
+				<artifactId>gitflow-maven-plugin</artifactId>
+				<configuration>
+					<!-- update all versions -->
+					<argLine>-DprocessAllModules</argLine>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>
