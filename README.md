@@ -4,7 +4,10 @@
 [![License](https://img.shields.io/github/license/sevensource/magnolia-module-simple-backup.svg)](https://github.com/sevensource/magnolia-module-simple-backup/blob/master/LICENSE)
 
 ## [Magnolia CMS](http://www.magnolia-cms.com) module adding backup and restore functionality
-.
+
+### Demo
+See [simple-backup-demo-module](simple-backup-demo-module) and [simple-backup-demo-scripts](simple-backup-demo-scripts) for a fully functional demo.
+
 ### Installation
 The module is available on [Maven central](https://search.maven.org/artifact/org.sevensource.magnolia/magnolia-module-simple-backup) - add it to your war file:
 ```xml

@@ -6,7 +6,7 @@ jobs:
 
     environment:
       MAVEN_OPTS: -Xmx3200m
-    
+
     steps:
       - checkout
       - restore_cache:
@@ -20,9 +20,9 @@ jobs:
           paths:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
-        
+
       - run: mvn integration-test
-      
+
       - deploy:
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
@@ -31,7 +31,7 @@ jobs:
               gpg --batch --fast-import cd/codesigning.asc
               echo allow-loopback-pinentry >> ~/.gnupg/gpg-agent.conf
               echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-              mvn -s .circleci/settings.xml -DskipTests package deploy
+              mvn --projects magnolia-module-simple-backup -s .circleci/settings.xml -DskipTests package deploy
             fi
 
 workflows:
@@ -40,7 +40,7 @@ workflows:
     jobs:
       - build:
           context: org-global
-          filters: 
+          filters:
             branches:
               only:
                 - master

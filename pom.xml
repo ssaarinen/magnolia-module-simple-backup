@@ -2,6 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
+	<parent>
+		<groupId>org.sevensource.parents</groupId>
+		<artifactId>sevensource-oss-build</artifactId>
+		<version>1.10</version>
+		<relativePath /> <!-- lookup from repo -->
+	</parent>
+
 	<groupId>org.sevensource.magnolia</groupId>
 	<artifactId>magnolia-module-simple-backup-reactor</artifactId>
 	<version>1.0.2-SNAPSHOT</version>
@@ -12,4 +19,10 @@
 		<module>simple-backup-demo-webapp</module>
 		<module>simple-backup-demo-module</module>
 	</modules>
+
+	<scm>
+		<connection>scm:git:git://github.com/sevensource/magnolia-module-simple-backup.git</connection>
+		<developerConnection>scm:git:git@github.com:sevensource/magnolia-module-simple-backup.git</developerConnection>
+		<url>http://github.com/sevensource/magnolia-module-simple-backup/tree/master</url>
+	</scm>
 </project>
