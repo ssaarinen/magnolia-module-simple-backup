@@ -1,0 +1,21 @@
+'simplebackup-backup':
+  'catalogName': simplebackup
+  'commandName': backup
+  'access':
+    'roles':
+      'rest': rest-admin
+
+'simplebackup-gc':
+  'catalogName': simplebackup
+  'commandName': garbage-collection
+  'access':
+    'roles':
+      'rest': rest-admin
+
+'simplebackup-restore':
+  'catalogName': simplebackup
+  'commandName': restore
+  'access':
+    'roles':
+      'rest': rest-admin
+

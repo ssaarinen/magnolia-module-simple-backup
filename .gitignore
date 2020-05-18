@@ -1,1 +1,2 @@
-magnolia-module-simple-backup.iml
+*.iml
+simple-backup-demo-webapp/overlays

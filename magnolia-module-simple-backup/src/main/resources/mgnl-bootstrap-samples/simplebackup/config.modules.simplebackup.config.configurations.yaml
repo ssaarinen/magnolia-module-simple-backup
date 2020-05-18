@@ -1,0 +1,13 @@
+example:
+  backupPath: ""
+  enabled: false
+  name: example
+  workspaces:
+    website:
+      workspace: website
+      path: /
+      split: true
+    config:
+      workspace: config
+      path: /
+      split: false

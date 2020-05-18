@@ -4,7 +4,10 @@
 [![License](https://img.shields.io/github/license/sevensource/magnolia-module-simple-backup.svg)](https://github.com/sevensource/magnolia-module-simple-backup/blob/master/LICENSE)
 
 ## [Magnolia CMS](http://www.magnolia-cms.com) module adding backup and restore functionality
-.
+
+### Demo
+See [simple-backup-demo-module](simple-backup-demo-module) and [simple-backup-demo-scripts](simple-backup-demo-scripts) for a fully functional demo.
+
 ### Installation
 The module is available on [Maven central](https://search.maven.org/artifact/org.sevensource.magnolia/magnolia-module-simple-backup) - add it to your war file:
 ```xml
@@ -33,7 +36,7 @@ The module is available on [Maven central](https://search.maven.org/artifact/org
           split: false
 ```
 ### Execution
-Backup and Restore is triggered via [Magnolia Commands](https://documentation.magnolia-cms.com/display/DOCS61/Commands)
+Backup and Restore is triggered via [Magnolia Commands](https://documentation.magnolia-cms.com/display/DOCS/Commands)
 Available commands:
 
 | Catalog  | Command | Parameters | Description |
@@ -66,15 +69,18 @@ cm.executeCommand('simplebackup','garbage-collection', null)
 ```
 
 #### via Magnolia's scheduler
-If you have [Magnolia Scheduler Module](https://documentation.magnolia-cms.com/display/DOCS61/Scheduler+module) installed, you can execute regular backups - see https://documentation.magnolia-cms.com/display/DOCS61/Commands#Commands-Scheduling for details.
+Using [Magnolia Scheduler Module](https://documentation.magnolia-cms.com/display/DOCS/Scheduler+module), regular
+backups can be executed - see [Commands-Scheduling](https://documentation.magnolia-cms.com/display/DOCS/Commands#Commands-Scheduling)
+for details.
 
 
 #### via REST services
-If you have [Magnolia Rest Module](https://documentation.magnolia-cms.com/display/DOCS61/REST+module) installed:
+Using [Magnolia Rest Module](https://documentation.magnolia-cms.com/display/DOCS/REST+module) backups can be initiated
+via the REST API:
 - enable the backup command in
 `/modules/rest-services/rest-endpoints/commands/enabledCommands`:
- _config.modules.rest-services.rest-endpoints.commands.enabledCommands.backup.yaml_
 
+_config.modules.rest-services.rest-endpoints.commands.enabledCommands.backup.yaml_
 ```yml
 backup:
   catalogName: simplebackup

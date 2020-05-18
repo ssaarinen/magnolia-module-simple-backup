@@ -1,0 +1,21 @@
+demo:
+  backupPath: "/tmp/mgnl-demo-backup"
+  enabled: true
+  name: demo
+  workspaces:
+    website:
+      workspace: website
+      path: /
+      split: true
+      enabled: false
+    config:
+      workspace: config
+      path: /
+      split: true
+      enabled: true
+    users:
+      workspace: users
+      path: /system
+      enabled: true
+      split: false
+      compress: false
