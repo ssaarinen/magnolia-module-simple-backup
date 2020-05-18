@@ -6,7 +6,6 @@ import info.magnolia.cms.beans.config.ServerConfiguration;
 import info.magnolia.commands.MgnlCommand;
 import info.magnolia.context.Context;
 import info.magnolia.context.SystemContext;
-import info.magnolia.importexport.command.JcrExportCommand;
 import org.apache.commons.lang3.StringUtils;
 import org.sevensource.magnolia.backup.SimpleBackupModule;
 import org.sevensource.magnolia.backup.configuration.SimpleBackupJobConfiguration;

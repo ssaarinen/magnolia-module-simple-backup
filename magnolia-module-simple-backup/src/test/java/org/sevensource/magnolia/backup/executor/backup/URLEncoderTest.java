@@ -1,6 +1,5 @@
 package org.sevensource.magnolia.backup.executor.backup;
 
-import info.magnolia.importexport.command.JcrExportCommand;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 

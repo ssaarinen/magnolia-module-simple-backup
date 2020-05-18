@@ -1,7 +1,6 @@
 package org.sevensource.magnolia.backup.configuration;
 
 public class SimpleBackupWorkspaceConfiguration {
-
 	private String workspace;
 	private String path = "/";
 	private boolean split = false;
@@ -38,5 +37,4 @@ public class SimpleBackupWorkspaceConfiguration {
 	public void setCompress(boolean compress) {
 		this.compress = compress;
 	}
-
 }
